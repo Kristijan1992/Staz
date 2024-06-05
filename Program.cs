@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 
 // Apstraktna klasa Osoba koja sadrži osnovne podatke o osobi
@@ -53,46 +53,68 @@ class Zaposlenik : Osoba
     public override void IspisPodataka()
     {
         var (godine, mjeseci, dani) = IzracunajStaz();
-        Console.WriteLine($"Ime: {Ime}\nPrezime: {Prezime}\nOIB: {OIB}\nUloga: {Uloga}\nDatum zaposlenja: {DatumZaposlenja:dd.MM.yyyy}\nRadni staž: {godine} {GetJedMnogStr(godine, "godina", "godine")}, {mjeseci} {GetJedMnogStr(mjeseci, "mjesec", "mjeseca")} i {dani} {GetJedMnogStr(dani, "dan", "dana")}");
+        Console.WriteLine($"Ime: {Ime}\nPrezime: {Prezime}\nOIB: {OIB}\nUloga: {Uloga}\nDatum zaposlenja: {DatumZaposlenja:dd.MM.yyyy}\nRadni staž: {godine} {GetJedMnogStr(godine, "godina", "godine", "godina")}, {mjeseci} {GetJedMnogStr(mjeseci, "mjesec", "mjeseca", "mjeseci")} i {dani} {GetJedMnogStr(dani, "dan", "dana", "dana")}");
     }
 
     // Pomoćna metoda za dobijanje pravilnog oblika jednine ili množine
-    private string GetJedMnogStr(int broj, string jednina, string mnozina) => broj == 1 ? jednina : mnozina;
+    private string GetJedMnogStr(int broj, string jednina, string mnozinaJed, string mnozinaDv = null)
+    {
+        if (broj == 1) return jednina;
+        if (broj >= 2 && broj <= 4 || (broj % 10 >= 2 && broj % 10 <= 4 && (broj % 100 < 10 || broj % 100 >= 20))) return mnozinaJed;
+        return mnozinaDv ?? mnozinaJed;
+    }
 }
 
-// Glavna klasa Programa
 class Program
 {
     static void Main()
     {
-        // Kreiranje novog zaposlenika i unos podataka
-        var zaposlenik = new Zaposlenik(UnosNepraznog("Unesite ime: "), UnosNepraznog("Unesite prezime: "), UnosOIB("Unesite OIB (11 znamenki): "), UnosNepraznog("Unesite ulogu: "), UnosDatum("Unesite datum zaposlenja (dd.mm.yyyy): "));
-        zaposlenik.IspisPodataka(); // Ispis podataka o zaposleniku
-        PritisniEnterZaNastavak(); // Čekanje na pritisak Entera za nastavak
+        var zaposlenik = ZaposlenikService.CreateZaposlenik();
+        zaposlenik.IspisPodataka();
+        ZaposlenikService.WaitForEnter();
+    }
+}
+
+class ZaposlenikService
+{
+    public static Zaposlenik CreateZaposlenik()
+    {
+        string ime = GetNonEmptyInput("Unesite ime: ");
+        string prezime = GetNonEmptyInput("Unesite prezime: ");
+        string oib = GetOIBInput("Unesite OIB (11 znamenki): ");
+        string uloga = GetNonEmptyInput("Unesite ulogu: ");
+        DateTime datumZaposlenja = GetDateInput("Unesite datum zaposlenja (dd.mm.yyyy): ");
+        return new Zaposlenik(ime, prezime, oib, uloga, datumZaposlenja);
+    }
+
+    public static void WaitForEnter()
+    {
+        Console.WriteLine("Pritisnite Enter za nastavak...");
+        while (Console.ReadKey().Key != ConsoleKey.Enter) { }
     }
 
     // Metoda za unos nepraznog stringa
-    static string UnosNepraznog(string poruka)
+    private static string GetNonEmptyInput(string message)
     {
-        string unos;
+        string input;
         do
         {
-            Console.Write(poruka);
-            unos = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(unos))
+            Console.Write(message);
+            input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input))
                 Console.WriteLine("Ovo polje ne može biti prazno. Molimo pokušajte ponovo.");
         }
-        while (string.IsNullOrWhiteSpace(unos));
-        return unos;
+        while (string.IsNullOrWhiteSpace(input));
+        return input;
     }
 
     // Metoda za unos OIB-a koji mora biti 11 znamenki
-    static string UnosOIB(string poruka)
+    private static string GetOIBInput(string message)
     {
         string oib;
         while (true)
         {
-            Console.Write(poruka);
+            Console.Write(message);
             oib = Console.ReadLine();
             if (!string.IsNullOrWhiteSpace(oib) && oib.Length == 11 && long.TryParse(oib, out _))
                 break;
@@ -102,23 +124,16 @@ class Program
     }
 
     // Metoda za unos datuma u specifičnom formatu
-    static DateTime UnosDatum(string poruka)
+    private static DateTime GetDateInput(string message)
     {
-        DateTime datum;
+        DateTime date;
         while (true)
         {
-            Console.Write(poruka);
-            if (DateTime.TryParseExact(Console.ReadLine(), "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out datum) && datum <= DateTime.Now)
+            Console.Write(message);
+            if (DateTime.TryParseExact(Console.ReadLine(), "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out date) && date <= DateTime.Now)
                 break;
             Console.WriteLine("Pogrešan format datuma ili datum veći od trenutnog. Molimo unesite datum u formatu dd.mm.yyyy.");
         }
-        return datum;
-    }
-
-    // Metoda za čekanje na pritisak Entera
-    static void PritisniEnterZaNastavak()
-    {
-        Console.WriteLine("Pritisnite Enter za nastavak...");
-        while (Console.ReadKey().Key != ConsoleKey.Enter) { }
+        return date;
     }
 }
